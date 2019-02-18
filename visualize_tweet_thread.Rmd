@@ -1,0 +1,130 @@
+---
+title: "Twitter Sentiment"
+output: html_notebook
+---
+Looking at sentiment in tweets over time. Interested in seeing if people have soured on Facebook, SF, other techie stuff.
+```{r}
+# loading libraries
+
+library(twitteR)
+library(tidyverse)
+library(tidytext)
+```
+
+Here, storying the keys and secrets I got from registering at dev.twitter.com.
+
+```{r}
+api_key <- "U6sz7kqclmsjbm28GMLrJrWj6"
+api_secret <- "8CljcDuxVrZxv3RPcHo5Mb4RcZaXA5MDZL87GKLmkuQ6Sg1KPm"
+
+access_token <- "2508966613-jywsXakkUljG1VwRoIMMKlmMjxcDrt8KJvja03I"
+access_token_secret <- "N28gEQ8imksB9IJyAU50Wc4tgMm6MGYTU4NIrbgrbWaZz"
+```
+
+Now setting up the twitter authorization
+
+```{r}
+setup_twitter_oauth(api_key, api_secret, access_token, access_token_secret)
+```
+
+Load patrick as a user
+```{r}
+username <- "patrick_oshag"
+
+patrick <- getUser(username)
+
+# load the system id for patrick's account
+patrick_id <- patrick$id
+```
+
+showStatus gives status 
+
+
+Thanks Jenny 
+https://github.com/jennybc/scream
+```{r}
+# i just got this from the URL of patrick's tweet, though you can also search with the r package
+tweet <- twitteR::showStatus("1097148442525224966")
+
+# load the system id for the tweet
+tweet_id <- tweet$id
+
+# a tweet from a little while later to cap the search results
+after_tweet <- twitteR::showStatus("1090784068491534336")
+after_id <- after_tweet$id
+```
+
+search Patrick's mentions since the tweet in question and only up until a few days later, because he probably has a lot of mentions and I don't want to use up my API calls
+
+```{r}
+search_string <- paste0("to:", username)
+
+replies <- searchTwitter(search_string,
+                         n = 500,
+                         sinceID = tweet_id
+                        )
+```
+Twitter API only lets you look back 7 days which is pretty annoying. So just doing this for top people rn
+
+```{r}
+tail(replies)
+```
+
+Helper functions from Jenny's blog post
+
+```{r}
+map_chr2 <- function(x, .f, ...) {
+  map(x, .f, ...) %>% map_if(is_empty, ~ NA_character_) %>% flatten_chr()
+}
+ellipsize <- function(x, n = 20) {
+  ifelse(str_length(x) > n,
+         paste0(str_sub(x, end = n - 1), "\u2026"),
+         str_sub(x, end = n)) %>%
+    str_pad(n)
+}
+```
+
+
+
+This twListToDF function is great.
+```{r}
+df <- twListToDF(replies)
+
+df %>% 
+  arrange(-favoriteCount)
+
+df <- df %>% 
+  mutate(clean_text = str_replace(text, "@patrick_oshag", "")) %>% 
+  arrange(-favoriteCount) %>% 
+  select(favoriteCount, clean_text)
+
+```
+
+This regex extracts the twitter handles from the tweets. This is an hour of my life i will never get back
+```{r}
+df <- df %>% 
+  mutate(person = str_extract_all(df$clean_text, '(?<=@)\\w+'))
+
+head(df)
+```
+The "person" column is made up of lists. I want to "flatten" the dataframe so that each recommended person is its own row.
+
+This is something I love about R. I spent 15 minutes trying to figure out how to do this, and it seemed like it would be really ugly, but there is a beautifully simple function someone created to unlist the lists within a dataframe.
+```{r}
+df <- df %>% 
+  unnest(person)
+
+df$person <- tolower(df$person)
+head(df)
+```
+
+write dataframe, going to analyse in tableau.
+
+```{r}
+df %>% 
+  group_by(person) %>% 
+  summarise(favorites = sum(favoriteCount)) %>% 
+  arrange(-favorites) %>% 
+  write_csv("people_to_start_a_company_with.csv")
+```
+
