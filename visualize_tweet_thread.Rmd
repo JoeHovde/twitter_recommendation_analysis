@@ -14,11 +14,11 @@ library(tidytext)
 Here, storying the keys and secrets I got from registering at dev.twitter.com.
 
 ```{r}
-api_key <- "U6sz7kqclmsjbm28GMLrJrWj6"
-api_secret <- "8CljcDuxVrZxv3RPcHo5Mb4RcZaXA5MDZL87GKLmkuQ6Sg1KPm"
+api_key <- ""
+api_secret <- ""
 
-access_token <- "2508966613-jywsXakkUljG1VwRoIMMKlmMjxcDrt8KJvja03I"
-access_token_secret <- "N28gEQ8imksB9IJyAU50Wc4tgMm6MGYTU4NIrbgrbWaZz"
+access_token <- ""
+access_token_secret <- ""
 ```
 
 Now setting up the twitter authorization
